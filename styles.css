@@ -787,106 +787,158 @@ thead th {
   color: var(--teal-deep);
 }
 
-.detail-grid {
-  display: grid;
-  gap: 18px;
+.detail-sheet {
+  min-width: 1180px;
+  border: 1px solid rgba(16, 35, 53, 0.14);
+  background: rgba(255, 255, 255, 0.86);
 }
 
-.detail-card {
-  border-radius: 20px;
-  border: 1px solid rgba(16, 35, 53, 0.12);
-  background: rgba(255, 255, 255, 0.76);
-  overflow: hidden;
-}
-
-.detail-card-header {
-  padding: 18px 18px 12px;
-  border-bottom: 1px solid rgba(16, 35, 53, 0.08);
-}
-
-.detail-card-header h3 {
-  margin: 0;
-  font-size: 1.18rem;
-}
-
-.detail-board {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  padding: 18px;
-}
-
-.stage-lane {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(239, 226, 202, 0.52));
-  border: 1px solid rgba(16, 35, 53, 0.08);
-  min-height: 180px;
-}
-
-.stage-lane header {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: center;
-}
-
-.stage-lane h4 {
-  margin: 0;
-  font-size: 0.98rem;
-}
-
-.stage-count {
-  min-width: 34px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(16, 35, 53, 0.08);
+.detail-sheet thead th {
   text-align: center;
-  font-size: 0.82rem;
+  font-size: 0.9rem;
+  border: 1px solid rgba(16, 35, 53, 0.14);
 }
 
-.candidate-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-content: flex-start;
-}
-
-.candidate-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(15, 138, 124, 0.12);
+.detail-sheet thead .detail-stage {
   color: var(--ink);
-  font-size: 0.88rem;
-}
-
-.empty-chip {
-  color: var(--ink-soft);
-  font-size: 0.88rem;
-}
-
-.comment-panel {
-  padding: 0 18px 18px;
-}
-
-.comment-panel label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 0.82rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+}
+
+.detail-sheet thead .stage-screening {
+  background: rgba(241, 233, 214, 0.96);
+}
+
+.detail-sheet thead .stage-submitted-in-review {
+  background: rgba(222, 232, 245, 0.98);
+}
+
+.detail-sheet thead .stage-interview {
+  background: rgba(245, 220, 206, 0.98);
+}
+
+.detail-sheet thead .stage-offer {
+  background: rgba(255, 241, 133, 0.98);
+}
+
+.detail-sheet thead .stage-hired {
+  background: rgba(214, 232, 198, 0.98);
+}
+
+.detail-sheet thead .stage-other {
+  background: rgba(226, 229, 234, 0.98);
+}
+
+.detail-sheet tbody th,
+.detail-sheet tbody td {
+  border: 1px solid rgba(16, 35, 53, 0.18);
+}
+
+.detail-row-even th,
+.detail-row-even td {
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.detail-row-odd th,
+.detail-row-odd td {
+  background: rgba(249, 245, 237, 0.84);
+}
+
+.position-cell {
+  min-width: 360px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.position-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.position-meta {
+  margin-top: 6px;
+  font-size: 0.78rem;
   color: var(--ink-soft);
 }
 
-.comment-panel textarea {
-  min-height: 92px;
+.detail-stage-cell {
+  min-width: 170px;
+  vertical-align: top;
+}
+
+.detail-stage-cell.stage-screening {
+  background: rgba(241, 233, 214, 0.34);
+}
+
+.detail-stage-cell.stage-submitted-in-review {
+  background: rgba(222, 232, 245, 0.38);
+}
+
+.detail-stage-cell.stage-interview {
+  background: rgba(245, 220, 206, 0.38);
+}
+
+.detail-stage-cell.stage-offer {
+  background: rgba(255, 241, 133, 0.3);
+}
+
+.detail-stage-cell.stage-hired {
+  background: rgba(214, 232, 198, 0.38);
+}
+
+.detail-stage-cell.stage-other {
+  background: rgba(226, 229, 234, 0.38);
+}
+
+.candidate-stack {
+  min-height: 56px;
+}
+
+.candidate-name,
+.candidate-placeholder {
+  display: block;
+  padding: 4px 2px;
+  text-align: center;
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.candidate-name + .candidate-name {
+  border-top: 1px solid rgba(16, 35, 53, 0.08);
+}
+
+.candidate-placeholder {
+  min-height: 28px;
+}
+
+.comment-cell {
+  min-width: 260px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.detail-comment {
+  min-height: 94px;
   resize: vertical;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.detail-comment:focus {
+  box-shadow: inset 0 0 0 2px rgba(15, 138, 124, 0.18);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .toast {
@@ -965,14 +1017,21 @@ thead th {
     grid-template-columns: 1fr;
   }
 
-  .detail-board {
-    grid-template-columns: 1fr;
+  .detail-sheet {
+    min-width: 860px;
   }
 }
 
 @media print {
+  @page {
+    size: landscape;
+    margin: 0.45in;
+  }
+
   body {
     background: #fff;
+    color: #000;
+    font-size: 10.5pt;
   }
 
   .backdrop,
@@ -1003,17 +1062,95 @@ thead th {
   }
 
   .panel {
+    display: none !important;
+  }
+
+  .panel.is-active {
     display: block !important;
   }
 
   .hero {
     margin-bottom: 12px;
+    padding: 14px 16px;
   }
 
+  .hero h1 {
+    font-size: 1.6rem;
+    max-width: none;
+  }
+
+  .hero-text,
+  .eyebrow,
+  .status-pill,
+  .metric-card,
+  .metric-card span,
+  .summary-logic-note,
+  .position-meta {
+    color: #000 !important;
+  }
+
+  .status-pill,
+  .metric-card,
+  .summary-logic-note {
+    background: #fff !important;
+    border: 1px solid #999 !important;
+    box-shadow: none !important;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .table-scroll,
+  .history-table-wrapper {
+    overflow: visible !important;
+  }
+
+  thead th,
+  .summary-table tbody th {
+    position: static !important;
+  }
+
+  .summary-table,
+  .detail-sheet {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed;
+    border-radius: 0;
+  }
+
+  .summary-table th,
+  .summary-table td,
+  .detail-sheet th,
+  .detail-sheet td {
+    padding: 6px 8px;
+    font-size: 9.5pt;
+    border: 1px solid #999 !important;
+    color: #000 !important;
+  }
+
+  .summary-row-even td,
+  .summary-row-even th,
+  .summary-row-odd td,
+  .summary-row-odd th,
+  .detail-row-even td,
+  .detail-row-even th,
+  .detail-row-odd td,
+  .detail-row-odd th,
   .empty-state,
-  .stage-lane,
-  .detail-card,
+  .position-cell,
+  .comment-cell,
   .summary-table tbody th {
     background: #fff !important;
+  }
+
+  .detail-comment {
+    min-height: 58px;
+  }
+
+  tr,
+  td,
+  th {
+    break-inside: avoid;
   }
 }

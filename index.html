@@ -61,7 +61,8 @@
             <ul class="sidebar-list">
               <li>Imports stay in your browser via IndexedDB.</li>
               <li>Each save creates a versioned weekly snapshot.</li>
-              <li>This Week is based on changes first observed in the latest saved snapshot.</li>
+              <li>This Week reflects the candidates visible in the selected weekly snapshot.</li>
+              <li>To Date rolls those weekly snapshot counts forward for the selected report week.</li>
               <li>Use browser print to create a PDF-ready shareout.</li>
             </ul>
           </section>
@@ -150,6 +151,7 @@
                 <div class="button-row compact">
                   <button id="exportWorkbookButton" type="button" class="primary-button">Export XLSX</button>
                   <button id="printReportButton" type="button" class="secondary-button">Print / Save PDF</button>
+                  <button id="resetRecordsButton" type="button" class="ghost-button">Reset records</button>
                 </div>
               </div>
               <div id="summaryMetrics" class="metric-grid report-metrics"></div>

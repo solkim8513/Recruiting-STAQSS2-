@@ -144,6 +144,7 @@ function cacheDom() {
     "summaryTableContainer",
     "exportWorkbookButton",
     "printReportButton",
+    "resetRecordsButton",
     "detailBoardContainer",
     "mappingTableBody",
     "newRawStageInput",
@@ -206,6 +207,7 @@ function bindEvents() {
   dom.loadSavedFiltersButton.addEventListener("click", loadSavedPreset);
   dom.exportWorkbookButton.addEventListener("click", exportWorkbook);
   dom.printReportButton.addEventListener("click", handlePrint);
+  dom.resetRecordsButton.addEventListener("click", handleResetRecords);
 
   dom.detailBoardContainer.addEventListener("change", handleCommentChange);
   dom.importHistoryPanel.addEventListener("click", handleHistoryActions);
@@ -293,6 +295,8 @@ function switchPanel(panelName) {
 }
 
 function syncPanels() {
+  document.body.setAttribute("data-active-panel", app.ui.activePanel);
+
   dom.tabButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.panelTarget === app.ui.activePanel);
   });
@@ -512,7 +516,7 @@ function renderImportValidation() {
   const bannerText = hasBlockingIssues
     ? "Validation found blocking issues. The missing required fields below must be fixed before a snapshot can be saved."
     : pending.warnings.length
-      ? "Validation passed in candidate-only mode. The app will derive positions from the candidate export and track changes by weekly snapshot."
+      ? "Validation passed in candidate-only mode. The app will derive positions from the candidate export and use the saved weekly snapshot as the report basis."
       : "Validation passed. The candidate export is ready to save as a weekly snapshot.";
 
   dom.validationResults.innerHTML = `
@@ -531,7 +535,7 @@ function renderImportValidation() {
       </div>
       <div class="validation-card">
         <span>Weekly logic</span>
-        <strong>Snapshot-based</strong>
+        <strong>Weekly snapshot</strong>
       </div>
       <div class="validation-card">
         <span>Snapshot version</span>
@@ -559,7 +563,7 @@ function renderImportValidation() {
       </div>
       <div class="validation-list is-success">
         <h3>This Week logic</h3>
-        <p>This Week counts stage changes first observed in the selected weekly snapshot. To Date stays cumulative across all saved snapshots.</p>
+        <p>This Week counts the candidates visible in the saved weekly snapshot. To Date accumulates those weekly snapshot counts across saved weeks.</p>
       </div>
     </div>
   `;
@@ -624,15 +628,15 @@ function renderSummaryDashboard() {
   dom.summaryMetrics.innerHTML = createMetricCards([
     { label: "Positions in scope", value: String(context.positions.length) },
     { label: "Current candidates", value: String(context.currentRecords.length) },
-    { label: "Updated this week", value: String(context.weeklyEvents.length) },
+    { label: "Candidates this week", value: String(context.weeklyRecords.length) },
     { label: "Open jobs", value: String(context.positions.filter((position) => position.jobStatus === "Open").length) },
   ]);
 
   dom.summaryLogicNote.innerHTML = `
     <strong>This Week logic:</strong>
-    counts candidates whose stage change was first observed in this saved weekly snapshot.
+    counts the candidates visible in this saved weekly snapshot.
     <strong>To Date:</strong>
-    cumulative observed stage entries across all saved snapshots through this week.
+    rolls those weekly snapshot counts forward across all saved weeks through this report.
   `;
 
   if (!context.positions.length) {
@@ -652,11 +656,11 @@ function renderSummaryDashboard() {
     .map((position, index) => {
       const stageCells = context.stages
         .map((stage) => {
-          const thisWeek = context.weeklyEvents.filter(
-            (event) => event.jobId === position.jobId && event.normalizedStage === stage
+          const thisWeek = context.weeklyRecords.filter(
+            (record) => record.jobId === position.jobId && record.normalizedStage === stage
           ).length;
-          const toDate = context.cumulativeEvents.filter(
-            (event) => event.jobId === position.jobId && event.normalizedStage === stage
+          const toDate = context.cumulativeRecords.filter(
+            (record) => record.jobId === position.jobId && record.normalizedStage === stage
           ).length;
           return `<td class="summary-number ${getStageClassName(stage)}">${formatNumber(thisWeek)}</td><td class="summary-number ${getStageClassName(stage)}">${formatNumber(toDate)}</td>`;
         })
@@ -684,8 +688,8 @@ function renderSummaryDashboard() {
 
   const totalCells = context.stages
     .map((stage) => {
-      const thisWeek = context.weeklyEvents.filter((event) => event.normalizedStage === stage).length;
-      const toDate = context.cumulativeEvents.filter((event) => event.normalizedStage === stage).length;
+      const thisWeek = context.weeklyRecords.filter((record) => record.normalizedStage === stage).length;
+      const toDate = context.cumulativeRecords.filter((record) => record.normalizedStage === stage).length;
       return `<td class="summary-number ${getStageClassName(stage)}">${formatNumber(thisWeek)}</td><td class="summary-number ${getStageClassName(stage)}">${formatNumber(toDate)}</td>`;
     })
     .join("");
@@ -725,66 +729,73 @@ function renderDetailBoard() {
     return;
   }
 
-  dom.detailBoardContainer.innerHTML = `
-    <div class="detail-grid">
-      ${context.positions
-        .map((position) => {
-          const cards = context.stages
-            .map((stage) => {
-              const candidates = context.currentRecords.filter(
-                (record) => record.jobId === position.jobId && record.normalizedStage === stage
-              );
-              return `
-                <section class="stage-lane">
-                  <header>
-                    <h4>${escapeHtml(stage)}</h4>
-                    <span class="stage-count">${formatNumber(candidates.length)}</span>
-                  </header>
-                  <div class="candidate-list">
-                    ${
-                      candidates.length
-                        ? candidates
-                            .map((candidate) => {
-                              const titleParts = [candidate.source, candidate.referrer].filter(Boolean).join(" - ");
-                              return `<span class="candidate-chip" title="${escapeHtml(titleParts || "No source metadata")}">${escapeHtml(candidate.candidateName)}</span>`;
-                            })
-                            .join("")
-                        : '<span class="empty-chip">No current candidates</span>'
-                    }
-                  </div>
-                </section>
-              `;
-            })
-            .join("");
+  const headerRow = context.stages
+    .map((stage) => `<th class="detail-stage ${getStageClassName(stage)}">${escapeHtml(stage)}</th>`)
+    .join("");
 
-          const comment = context.selectedImport.commentsByJobId?.[position.jobId] || "";
-          const metaItems = [
-            position.jobDepartment || "No department",
-            position.jobStatus || "Unknown status",
-            position.jobLabel || "",
-          ].filter(Boolean);
+  const bodyRows = context.positions
+    .map((position, index) => {
+      const stageCells = context.stages
+        .map((stage) => {
+          const candidates = context.currentRecords
+            .filter((record) => record.jobId === position.jobId && record.normalizedStage === stage)
+            .sort((left, right) => left.candidateName.localeCompare(right.candidateName));
 
           return `
-            <article class="detail-card">
-              <div class="detail-card-header">
-                <h3>${escapeHtml(position.jobTitle)}</h3>
-                <div class="meta-line">
-                  ${metaItems.map((item) => `<span class="meta-pill">${escapeHtml(item)}</span>`).join("")}
-                </div>
+            <td class="detail-stage-cell ${getStageClassName(stage)}">
+              <div class="candidate-stack">
+                ${
+                  candidates.length
+                    ? candidates
+                        .map((candidate) => {
+                          const titleParts = [candidate.source, candidate.referrer].filter(Boolean).join(" - ");
+                          return `<div class="candidate-name" title="${escapeHtml(titleParts || "No source metadata")}">${escapeHtml(candidate.candidateName)}</div>`;
+                        })
+                        .join("")
+                    : '<div class="candidate-placeholder">&nbsp;</div>'
+                }
               </div>
-              <div class="detail-board">${cards}</div>
-              <div class="comment-panel">
-                <label for="comment-${escapeHtml(position.jobId)}">Weekly position comment</label>
-                <textarea
-                  id="comment-${escapeHtml(position.jobId)}"
-                  data-comment-job-id="${escapeHtml(position.jobId)}"
-                  placeholder="Add weekly status, blockers, or next-step notes..."
-                >${escapeHtml(comment)}</textarea>
-              </div>
-            </article>
+            </td>
           `;
         })
-        .join("")}
+        .join("");
+
+      const comment = context.selectedImport.commentsByJobId?.[position.jobId] || "";
+      const metaLine = [position.jobLabel, position.jobDepartment, position.jobStatus].filter(Boolean).join(" | ");
+
+      return `
+        <tr class="${index % 2 === 0 ? "detail-row-even" : "detail-row-odd"}">
+          <th scope="row" class="position-cell">
+            <div class="position-title">${escapeHtml(position.jobTitle)}</div>
+            ${metaLine ? `<div class="position-meta">${escapeHtml(metaLine)}</div>` : ""}
+          </th>
+          ${stageCells}
+          <td class="comment-cell">
+            <label class="sr-only" for="comment-${escapeHtml(position.jobId)}">Status/Comment</label>
+            <textarea
+              id="comment-${escapeHtml(position.jobId)}"
+              class="detail-comment"
+              data-comment-job-id="${escapeHtml(position.jobId)}"
+              placeholder="Add weekly status, blockers, or next-step notes..."
+            >${escapeHtml(comment)}</textarea>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  dom.detailBoardContainer.innerHTML = `
+    <div class="table-scroll">
+      <table class="detail-sheet">
+        <thead>
+          <tr>
+            <th>Position</th>
+            ${headerRow}
+            <th>Status/Comment</th>
+          </tr>
+        </thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
     </div>
   `;
 }
@@ -1042,7 +1053,7 @@ function buildImportPreview({ candidateReview, jobReview, weekStart, weekEnd, ca
   const warnings = [
     ...candidateReview.missingOptional.map((label) => `Candidate export is missing optional field: ${label}`),
     ...jobReview.missingOptional.map((label) => `Derived position metadata is missing optional field: ${label}`),
-    "This Week uses snapshot-based change detection because the candidate template does not provide dependable stage movement dates.",
+    "This Week uses the saved weekly snapshot counts because the candidate template does not provide dependable stage movement dates.",
   ];
   const record = valid
     ? createSnapshotRecord({
@@ -1317,24 +1328,37 @@ function buildReportContext() {
     (snapshot) => snapshot.weekStart < selectedImport.weekStart || snapshot.id === selectedImport.id
   );
 
-  const cumulativeEvents = includedSnapshots.flatMap((snapshot) => snapshot.stageEvents || []).filter((event) => {
-    return positionIds.has(event.jobId) && candidateMatchesFilters(event, app.ui.filters) && event.eventDate <= selectedImport.weekEnd;
-  });
+  const cumulativeRecords = includedSnapshots
+    .flatMap((snapshot) => {
+      return snapshot.candidateRecords.map((record) => ({
+        ...record,
+        snapshotId: snapshot.id,
+        snapshotWeekStart: snapshot.weekStart,
+        snapshotWeekEnd: snapshot.weekEnd,
+        auditRecordedAt: snapshot.createdAt,
+        auditWeekLabel: snapshot.weekLabel,
+      }));
+    })
+    .filter((record) => {
+      return (
+        positionIds.has(record.jobId) &&
+        candidateMatchesFilters(record, app.ui.filters) &&
+        record.snapshotWeekEnd <= selectedImport.weekEnd
+      );
+    });
 
-  const weeklyEvents = cumulativeEvents.filter(
-    (event) => event.eventDate >= selectedImport.weekStart && event.eventDate <= selectedImport.weekEnd
-  );
+  const weeklyRecords = cumulativeRecords.filter((record) => record.snapshotId === selectedImport.id);
 
   const stages = app.ui.filters.stage
     ? [app.ui.filters.stage]
-    : getVisibleStages(selectedImport, cumulativeEvents, currentRecords);
+    : getVisibleStages(selectedImport, cumulativeRecords, currentRecords);
 
   return {
     selectedImport,
     positions,
     currentRecords,
-    cumulativeEvents,
-    weeklyEvents,
+    cumulativeRecords,
+    weeklyRecords,
     stages,
   };
 }
@@ -1474,6 +1498,34 @@ function loadSavedPreset() {
   showToast("Loaded the saved STAQSS preset.");
 }
 
+async function handleResetRecords() {
+  if (!app.imports.length) {
+    showToast("There are no saved records to reset.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Reset all saved weekly snapshots and comments in this browser? This is intended for testing and cannot be undone."
+  );
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    app.imports = [];
+    app.ui.selectedImportId = "";
+    app.ui.pendingImport = null;
+    app.ui.fileSelection = getEmptyFileSelection();
+    app.ui.activePanel = "summary";
+    await persistAllImports();
+    renderAll();
+    showToast("Cleared all saved snapshots and comments from this browser.");
+  } catch (error) {
+    console.error(error);
+    showToast("The saved records could not be reset. Please try again.");
+  }
+}
+
 async function handleCommentChange(event) {
   const target = event.target;
   if (!(target instanceof HTMLTextAreaElement)) {
@@ -1573,6 +1625,7 @@ function exportWorkbook() {
 }
 
 function handlePrint() {
+  document.body.setAttribute("data-active-panel", app.ui.activePanel);
   document.body.setAttribute("data-printing", "true");
   window.print();
 }
@@ -1595,11 +1648,11 @@ function buildSummarySheetData(context) {
   context.positions.forEach((position) => {
     const row = [position.jobTitle];
     context.stages.forEach((stage) => {
-      const thisWeek = context.weeklyEvents.filter(
-        (event) => event.jobId === position.jobId && event.normalizedStage === stage
+      const thisWeek = context.weeklyRecords.filter(
+        (record) => record.jobId === position.jobId && record.normalizedStage === stage
       ).length;
-      const toDate = context.cumulativeEvents.filter(
-        (event) => event.jobId === position.jobId && event.normalizedStage === stage
+      const toDate = context.cumulativeRecords.filter(
+        (record) => record.jobId === position.jobId && record.normalizedStage === stage
       ).length;
       row.push(thisWeek, toDate);
     });
@@ -1609,8 +1662,8 @@ function buildSummarySheetData(context) {
   const totalRow = ["Total"];
   context.stages.forEach((stage) => {
     totalRow.push(
-      context.weeklyEvents.filter((event) => event.normalizedStage === stage).length,
-      context.cumulativeEvents.filter((event) => event.normalizedStage === stage).length
+      context.weeklyRecords.filter((record) => record.normalizedStage === stage).length,
+      context.cumulativeRecords.filter((record) => record.normalizedStage === stage).length
     );
   });
   rows.push(totalRow);
@@ -1645,7 +1698,7 @@ function buildMetadataSheetData(context) {
     ["Report Week", context.selectedImport.weekLabel],
     ["Snapshot Version", `v${context.selectedImport.version}`],
     ["Saved At", formatDateTime(context.selectedImport.createdAt)],
-    ["This Week Logic", "Stage changes first observed in the selected saved snapshot"],
+    ["This Week Logic", "Candidates visible in the selected saved weekly snapshot"],
     ["Filter - Job Status", app.ui.filters.jobStatus],
     ["Filter - Department", app.ui.filters.department || "All"],
     ["Filter - Recruiter", app.ui.filters.recruiter || "All"],
