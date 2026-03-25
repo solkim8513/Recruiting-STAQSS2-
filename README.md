@@ -4,7 +4,7 @@ Static MVP for weekly JazzHR reporting. The app runs fully in the browser and st
 
 ## What it does
 
-- Imports JazzHR candidate and job exports in `CSV`, `XLSX`, or `XLS`
+- Imports the weekly JazzHR candidate export in `CSV`, `XLSX`, or `XLS`
 - Validates required columns before saving a weekly snapshot
 - Creates versioned weekly snapshots and preserves history
 - Normalizes JazzHR stages into business stages with editable default mappings
@@ -17,7 +17,7 @@ Static MVP for weekly JazzHR reporting. The app runs fully in the browser and st
 ## Local use
 
 1. Open `index.html` in a browser, or serve the folder with a simple static server.
-2. Validate one candidate export and one job export for a selected week.
+2. Validate the weekly candidate export for a selected week.
 3. Save the snapshot.
 4. Review the Summary Dashboard and Detail Board.
 5. Export the workbook or print the page to PDF.

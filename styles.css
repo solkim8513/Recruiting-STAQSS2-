@@ -647,13 +647,31 @@ thead th {
   margin: 20px 0;
 }
 
+.summary-logic-note {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 138, 124, 0.18);
+  background: linear-gradient(135deg, rgba(15, 138, 124, 0.08), rgba(255, 255, 255, 0.9));
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+.summary-logic-note strong {
+  color: var(--ink);
+}
+
 .summary-table {
   min-width: 960px;
+  border: 1px solid rgba(16, 35, 53, 0.1);
+  border-radius: 18px;
+  overflow: hidden;
 }
 
 .summary-table thead th {
   text-align: center;
   font-size: 0.88rem;
+  border-bottom: 1px solid rgba(16, 35, 53, 0.14);
 }
 
 .summary-table td:not(:first-child),
@@ -665,12 +683,93 @@ thead th {
   position: sticky;
   left: 0;
   background: rgba(255, 250, 242, 0.96);
+  min-width: 280px;
 }
 
 .summary-table tfoot th,
 .summary-table tfoot td {
   background: rgba(16, 35, 53, 0.06);
   font-weight: 700;
+}
+
+.summary-row-even td,
+.summary-row-even th {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.summary-row-odd td,
+.summary-row-odd th {
+  background: rgba(244, 239, 228, 0.66);
+}
+
+.summary-stage {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.summary-subhead {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.summary-number {
+  font-variant-numeric: tabular-nums;
+  border-left: 1px solid rgba(16, 35, 53, 0.08);
+}
+
+.summary-table thead .stage-screening {
+  background: linear-gradient(180deg, rgba(15, 138, 124, 0.9), rgba(15, 138, 124, 0.72)) !important;
+}
+
+.summary-table thead .stage-submitted-in-review {
+  background: linear-gradient(180deg, rgba(36, 103, 176, 0.92), rgba(36, 103, 176, 0.74)) !important;
+}
+
+.summary-table thead .stage-interview {
+  background: linear-gradient(180deg, rgba(139, 93, 42, 0.92), rgba(139, 93, 42, 0.74)) !important;
+}
+
+.summary-table thead .stage-offer {
+  background: linear-gradient(180deg, rgba(214, 116, 69, 0.92), rgba(214, 116, 69, 0.74)) !important;
+}
+
+.summary-table thead .stage-hired {
+  background: linear-gradient(180deg, rgba(96, 153, 44, 0.92), rgba(96, 153, 44, 0.76)) !important;
+}
+
+.summary-table thead .stage-other {
+  background: linear-gradient(180deg, rgba(79, 100, 118, 0.92), rgba(79, 100, 118, 0.74)) !important;
+}
+
+.summary-table tbody td.stage-screening,
+.summary-table tfoot td.stage-screening {
+  background: rgba(15, 138, 124, 0.08);
+}
+
+.summary-table tbody td.stage-submitted-in-review,
+.summary-table tfoot td.stage-submitted-in-review {
+  background: rgba(36, 103, 176, 0.08);
+}
+
+.summary-table tbody td.stage-interview,
+.summary-table tfoot td.stage-interview {
+  background: rgba(139, 93, 42, 0.08);
+}
+
+.summary-table tbody td.stage-offer,
+.summary-table tfoot td.stage-offer {
+  background: rgba(214, 116, 69, 0.08);
+}
+
+.summary-table tbody td.stage-hired,
+.summary-table tfoot td.stage-hired {
+  background: rgba(96, 153, 44, 0.08);
+}
+
+.summary-table tbody td.stage-other,
+.summary-table tfoot td.stage-other {
+  background: rgba(79, 100, 118, 0.08);
 }
 
 .meta-line {

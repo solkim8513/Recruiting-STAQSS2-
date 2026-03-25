@@ -27,8 +27,8 @@
           <p class="eyebrow">JazzHR reporting layer</p>
           <h1>STAQSS II Recruiting Dashboard</h1>
           <p class="hero-text">
-            Import weekly candidate and job exports, preserve snapshot history, calculate stage-entry metrics,
-            and publish the same summary/detail view Ana has been maintaining by hand.
+            Import the weekly candidate export, preserve snapshot history, compare each week against the last saved
+            update, and publish the same summary/detail view Ana has been maintaining by hand.
           </p>
         </div>
         <div class="hero-meta">
@@ -61,13 +61,105 @@
             <ul class="sidebar-list">
               <li>Imports stay in your browser via IndexedDB.</li>
               <li>Each save creates a versioned weekly snapshot.</li>
-              <li>This Week and To Date are derived from stage-entry events.</li>
+              <li>This Week is based on changes first observed in the latest saved snapshot.</li>
               <li>Use browser print to create a PDF-ready shareout.</li>
             </ul>
           </section>
         </aside>
 
         <main class="main-column">
+          <section class="panel is-active" data-panel="import">
+            <div class="content-grid">
+              <article class="card">
+                <div class="card-heading">
+                  <div>
+                    <p class="eyebrow">Screen 1</p>
+                    <h2>Import Center</h2>
+                  </div>
+                  <span class="card-chip">CSV / XLSX</span>
+                </div>
+
+                <div class="field-grid">
+                  <label class="field">
+                    <span>Report week</span>
+                    <input id="reportWeekInput" class="input-text" type="date">
+                    <small id="reportWeekHint" class="helper-text"></small>
+                  </label>
+
+                  <label class="field field-wide">
+                    <span>Weekly candidate export</span>
+                    <input id="importFilesInput" class="input-text file-input" type="file" accept=".csv,.xlsx,.xls">
+                    <small class="helper-text">
+                      Use the candidate report template as the weekly input. Positions are derived directly from this
+                      file, so a separate job workbook is no longer required.
+                    </small>
+                  </label>
+                </div>
+
+                <div id="uploadStatusPanel" class="upload-status-grid">
+                  <article class="upload-slot">
+                    <p class="sidebar-label">Candidate export</p>
+                    <p class="sidebar-hint">No candidate file selected yet.</p>
+                  </article>
+                </div>
+
+                <div class="button-row">
+                  <button id="validateImportButton" type="button" class="primary-button">Validate files</button>
+                  <button id="saveImportButton" type="button" class="secondary-button" disabled>Save weekly snapshot</button>
+                  <button id="loadDemoButton" type="button" class="ghost-button">Load demo snapshots</button>
+                </div>
+
+                <p class="helper-text">
+                  This build keeps a version history. Re-importing the same week creates a new version instead of
+                  replacing the earlier snapshot.
+                </p>
+              </article>
+
+              <article class="card">
+                <div class="card-heading">
+                  <div>
+                    <p class="eyebrow">Validation</p>
+                    <h2>Import Review</h2>
+                  </div>
+                  <span class="card-chip" id="validationStatus">Waiting for files</span>
+                </div>
+                <div id="validationResults" class="empty-state">
+                  Upload the weekly candidate export, then validate before saving.
+                </div>
+              </article>
+            </div>
+
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Audit trail</p>
+                  <h2>Snapshot History</h2>
+                </div>
+              </div>
+              <div id="importHistoryPanel" class="history-table-wrapper"></div>
+            </article>
+          </section>
+
+          <section class="panel" data-panel="summary">
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Screen 2</p>
+                  <h2>Summary Dashboard</h2>
+                </div>
+                <div class="button-row compact">
+                  <button id="exportWorkbookButton" type="button" class="primary-button">Export XLSX</button>
+                  <button id="printReportButton" type="button" class="secondary-button">Print / Save PDF</button>
+                </div>
+              </div>
+              <div id="summaryMetrics" class="metric-grid report-metrics"></div>
+              <div id="summaryLogicNote" class="summary-logic-note"></div>
+              <div id="summaryTableContainer" class="empty-state">
+                Save a weekly snapshot to generate the summary matrix.
+              </div>
+            </article>
+          </section>
+
           <section class="report-bar" id="reportBar">
             <div class="bar-header">
               <div>
@@ -88,6 +180,7 @@
                   <option value="All">All</option>
                   <option value="Open">Open</option>
                   <option value="Closed">Closed</option>
+                  <option value="Unknown">Unknown</option>
                 </select>
               </label>
 
@@ -135,111 +228,16 @@
             <div class="job-filter-card">
               <div class="job-filter-header">
                 <div>
-                  <p class="sidebar-label">Selected Jobs</p>
+                  <p class="sidebar-label">Selected Positions</p>
                   <p class="sidebar-hint" id="jobFilterCount">0 jobs selected</p>
                 </div>
                 <label class="field inline-field">
-                  <span>Search jobs</span>
-                  <input id="jobSearchInput" class="input-text" type="search" placeholder="Search title or Job ID">
+                  <span>Search positions</span>
+                  <input id="jobSearchInput" class="input-text" type="search" placeholder="Search title or job key">
                 </label>
               </div>
               <div class="job-checklist" id="jobChecklist"></div>
             </div>
-          </section>
-
-          <section class="panel is-active" data-panel="import">
-            <div class="content-grid">
-              <article class="card">
-                <div class="card-heading">
-                  <div>
-                    <p class="eyebrow">Screen 1</p>
-                    <h2>Import Center</h2>
-                  </div>
-                  <span class="card-chip">CSV / XLSX</span>
-                </div>
-
-                <div class="field-grid">
-                  <label class="field">
-                    <span>Report week</span>
-                    <input id="reportWeekInput" class="input-text" type="date">
-                    <small id="reportWeekHint" class="helper-text"></small>
-                  </label>
-
-                  <label class="field field-wide">
-                    <span>Weekly export files</span>
-                    <input id="importFilesInput" class="input-text file-input" type="file" accept=".csv,.xlsx,.xls" multiple>
-                    <small class="helper-text">
-                      Select both files from one picker. The app will auto-detect which one is the candidate export
-                      and which one is the job export, then show you what it recognized.
-                    </small>
-                  </label>
-                </div>
-
-                <div id="uploadStatusPanel" class="upload-status-grid">
-                  <article class="upload-slot">
-                    <p class="sidebar-label">Candidate export</p>
-                    <p class="sidebar-hint">No file selected yet.</p>
-                  </article>
-                  <article class="upload-slot">
-                    <p class="sidebar-label">Job export</p>
-                    <p class="sidebar-hint">No file selected yet.</p>
-                  </article>
-                </div>
-
-                <div class="button-row">
-                  <button id="validateImportButton" type="button" class="primary-button">Validate files</button>
-                  <button id="saveImportButton" type="button" class="secondary-button" disabled>Save weekly snapshot</button>
-                  <button id="loadDemoButton" type="button" class="ghost-button">Load demo snapshots</button>
-                </div>
-
-                <p class="helper-text">
-                  This build keeps a version history. Re-importing the same week creates a new version instead of
-                  replacing the earlier snapshot.
-                </p>
-              </article>
-
-              <article class="card">
-                <div class="card-heading">
-                  <div>
-                    <p class="eyebrow">Validation</p>
-                    <h2>Import Review</h2>
-                  </div>
-                  <span class="card-chip" id="validationStatus">Waiting for files</span>
-                </div>
-                <div id="validationResults" class="empty-state">
-                  Upload one candidate export and one job export, then validate before saving.
-                </div>
-              </article>
-            </div>
-
-            <article class="card">
-              <div class="card-heading">
-                <div>
-                  <p class="eyebrow">Audit trail</p>
-                  <h2>Snapshot History</h2>
-                </div>
-              </div>
-              <div id="importHistoryPanel" class="history-table-wrapper"></div>
-            </article>
-          </section>
-
-          <section class="panel" data-panel="summary">
-            <article class="card">
-              <div class="card-heading">
-                <div>
-                  <p class="eyebrow">Screen 2</p>
-                  <h2>Summary Dashboard</h2>
-                </div>
-                <div class="button-row compact">
-                  <button id="exportWorkbookButton" type="button" class="primary-button">Export XLSX</button>
-                  <button id="printReportButton" type="button" class="secondary-button">Print / Save PDF</button>
-                </div>
-              </div>
-              <div id="summaryMetrics" class="metric-grid report-metrics"></div>
-              <div id="summaryTableContainer" class="empty-state">
-                Save a weekly snapshot to generate the summary matrix.
-              </div>
-            </article>
           </section>
 
           <section class="panel" data-panel="detail">
