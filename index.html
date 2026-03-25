@@ -1,13 +1,321 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>recruiting-dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+      name="description"
+      content="STAQSS II Recruiting Dashboard - weekly JazzHR import, summary reporting, detail board, and export."
+    >
+    <title>STAQSS II Recruiting Dashboard</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="app.js" defer></script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <div class="backdrop"></div>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">JazzHR reporting layer</p>
+          <h1>STAQSS II Recruiting Dashboard</h1>
+          <p class="hero-text">
+            Import weekly candidate and job exports, preserve snapshot history, calculate stage-entry metrics,
+            and publish the same summary/detail view Ana has been maintaining by hand.
+          </p>
+        </div>
+        <div class="hero-meta">
+          <div class="status-pill" id="storageStatus">Loading browser workspace...</div>
+          <div class="metric-grid" id="heroMetrics"></div>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <aside class="sidebar">
+          <nav class="tab-nav" aria-label="Dashboard sections">
+            <button class="tab-link is-active" data-panel-target="import">Import Center</button>
+            <button class="tab-link" data-panel-target="summary">Summary Dashboard</button>
+            <button class="tab-link" data-panel-target="detail">Detail Board</button>
+            <button class="tab-link" data-panel-target="admin">Admin &amp; Mapping</button>
+          </nav>
+
+          <section class="sidebar-card">
+            <p class="sidebar-label">Selected Snapshot</p>
+            <div class="snapshot-stack">
+              <select id="snapshotSelect" class="input-select"></select>
+              <p class="sidebar-hint" id="snapshotHint">
+                No weekly snapshots yet. Start in Import Center or load the guided demo.
+              </p>
+            </div>
+          </section>
+
+          <section class="sidebar-card">
+            <p class="sidebar-label">How This MVP Works</p>
+            <ul class="sidebar-list">
+              <li>Imports stay in your browser via IndexedDB.</li>
+              <li>Each save creates a versioned weekly snapshot.</li>
+              <li>This Week and To Date are derived from stage-entry events.</li>
+              <li>Use browser print to create a PDF-ready shareout.</li>
+            </ul>
+          </section>
+        </aside>
+
+        <main class="main-column">
+          <section class="report-bar" id="reportBar">
+            <div class="bar-header">
+              <div>
+                <p class="eyebrow">Report controls</p>
+                <h2 id="reportTitle">Choose a weekly snapshot</h2>
+              </div>
+              <div class="bar-actions">
+                <button type="button" class="ghost-button" id="loadSavedFiltersButton">Load STAQSS preset</button>
+                <button type="button" class="ghost-button" id="saveSavedFiltersButton">Save current as preset</button>
+                <button type="button" class="ghost-button" id="clearFiltersButton">Clear filters</button>
+              </div>
+            </div>
+
+            <div class="filter-grid">
+              <label class="field">
+                <span>Job Status</span>
+                <select id="jobStatusFilter" class="input-select">
+                  <option value="All">All</option>
+                  <option value="Open">Open</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Department</span>
+                <select id="departmentFilter" class="input-select"></select>
+              </label>
+
+              <label class="field">
+                <span>Recruiter</span>
+                <select id="recruiterFilter" class="input-select"></select>
+              </label>
+
+              <label class="field">
+                <span>Stage</span>
+                <select id="stageFilter" class="input-select"></select>
+              </label>
+
+              <label class="field">
+                <span>Clearance</span>
+                <select id="clearanceFilter" class="input-select"></select>
+              </label>
+
+              <label class="field">
+                <span>Location</span>
+                <select id="locationFilter" class="input-select"></select>
+              </label>
+
+              <label class="field">
+                <span>SOC</span>
+                <select id="socFilter" class="input-select"></select>
+              </label>
+
+              <label class="field">
+                <span>Source</span>
+                <select id="sourceFilter" class="input-select"></select>
+              </label>
+
+              <label class="field">
+                <span>Referrer</span>
+                <select id="referrerFilter" class="input-select"></select>
+              </label>
+            </div>
+
+            <div class="job-filter-card">
+              <div class="job-filter-header">
+                <div>
+                  <p class="sidebar-label">Selected Jobs</p>
+                  <p class="sidebar-hint" id="jobFilterCount">0 jobs selected</p>
+                </div>
+                <label class="field inline-field">
+                  <span>Search jobs</span>
+                  <input id="jobSearchInput" class="input-text" type="search" placeholder="Search title or Job ID">
+                </label>
+              </div>
+              <div class="job-checklist" id="jobChecklist"></div>
+            </div>
+          </section>
+
+          <section class="panel is-active" data-panel="import">
+            <div class="content-grid">
+              <article class="card">
+                <div class="card-heading">
+                  <div>
+                    <p class="eyebrow">Screen 1</p>
+                    <h2>Import Center</h2>
+                  </div>
+                  <span class="card-chip">CSV / XLSX</span>
+                </div>
+
+                <div class="field-grid">
+                  <label class="field">
+                    <span>Report week</span>
+                    <input id="reportWeekInput" class="input-text" type="date">
+                    <small id="reportWeekHint" class="helper-text"></small>
+                  </label>
+
+                  <label class="field">
+                    <span>Candidate export</span>
+                    <input id="candidateFileInput" class="input-text file-input" type="file" accept=".csv,.xlsx,.xls">
+                  </label>
+
+                  <label class="field">
+                    <span>Job export</span>
+                    <input id="jobFileInput" class="input-text file-input" type="file" accept=".csv,.xlsx,.xls">
+                  </label>
+                </div>
+
+                <div class="button-row">
+                  <button id="validateImportButton" type="button" class="primary-button">Validate files</button>
+                  <button id="saveImportButton" type="button" class="secondary-button" disabled>Save weekly snapshot</button>
+                  <button id="loadDemoButton" type="button" class="ghost-button">Load demo snapshots</button>
+                </div>
+
+                <p class="helper-text">
+                  This build keeps a version history. Re-importing the same week creates a new version instead of
+                  replacing the earlier snapshot.
+                </p>
+              </article>
+
+              <article class="card">
+                <div class="card-heading">
+                  <div>
+                    <p class="eyebrow">Validation</p>
+                    <h2>Import Review</h2>
+                  </div>
+                  <span class="card-chip" id="validationStatus">Waiting for files</span>
+                </div>
+                <div id="validationResults" class="empty-state">
+                  Upload one candidate export and one job export, then validate before saving.
+                </div>
+              </article>
+            </div>
+
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Audit trail</p>
+                  <h2>Snapshot History</h2>
+                </div>
+              </div>
+              <div id="importHistoryPanel" class="history-table-wrapper"></div>
+            </article>
+          </section>
+
+          <section class="panel" data-panel="summary">
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Screen 2</p>
+                  <h2>Summary Dashboard</h2>
+                </div>
+                <div class="button-row compact">
+                  <button id="exportWorkbookButton" type="button" class="primary-button">Export XLSX</button>
+                  <button id="printReportButton" type="button" class="secondary-button">Print / Save PDF</button>
+                </div>
+              </div>
+              <div id="summaryMetrics" class="metric-grid report-metrics"></div>
+              <div id="summaryTableContainer" class="empty-state">
+                Save a weekly snapshot to generate the summary matrix.
+              </div>
+            </article>
+          </section>
+
+          <section class="panel" data-panel="detail">
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Screen 3</p>
+                  <h2>Detail Board</h2>
+                </div>
+                <span class="card-chip">Current-stage inventory by position</span>
+              </div>
+              <div id="detailBoardContainer" class="empty-state">
+                Save a weekly snapshot to populate the recruiter-facing board.
+              </div>
+            </article>
+          </section>
+
+          <section class="panel" data-panel="admin">
+            <div class="content-grid">
+              <article class="card">
+                <div class="card-heading">
+                  <div>
+                    <p class="eyebrow">Screen 4</p>
+                    <h2>Stage Mapping</h2>
+                  </div>
+                </div>
+                <p class="helper-text">
+                  Default mappings apply to future imports. Saved snapshots keep the mapping snapshot used when the
+                  week was imported so historical reporting stays reproducible.
+                </p>
+                <div class="table-scroll">
+                  <table class="mapping-table">
+                    <thead>
+                      <tr>
+                        <th>JazzHR Stage</th>
+                        <th>Business Stage</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mappingTableBody"></tbody>
+                  </table>
+                </div>
+                <div class="field-grid admin-grid">
+                  <label class="field">
+                    <span>New raw stage</span>
+                    <input id="newRawStageInput" class="input-text" type="text" placeholder="Example: Offer Accepted">
+                  </label>
+                  <label class="field">
+                    <span>Maps to</span>
+                    <input id="newRawStageMappedInput" class="input-text" list="businessStageOptions" placeholder="Hired">
+                  </label>
+                </div>
+                <div class="button-row">
+                  <button id="addMappingButton" type="button" class="secondary-button">Add mapping</button>
+                </div>
+              </article>
+
+              <article class="card">
+                <div class="card-heading">
+                  <div>
+                    <p class="eyebrow">Saved filters</p>
+                    <h2>STAQSS Preset</h2>
+                  </div>
+                </div>
+                <p class="helper-text">
+                  Save a reusable portfolio filter set for the department or handpicked requisitions the team reviews
+                  every week.
+                </p>
+                <div id="savedPresetSummary" class="empty-state compact-empty">
+                  No saved STAQSS preset yet.
+                </div>
+              </article>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <datalist id="businessStageOptions">
+      <option value="Screening"></option>
+      <option value="Submitted/In Review"></option>
+      <option value="Interview"></option>
+      <option value="Offer"></option>
+      <option value="Hired"></option>
+      <option value="Other"></option>
+    </datalist>
   </body>
 </html>
