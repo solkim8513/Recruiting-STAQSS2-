@@ -247,6 +247,14 @@ textarea {
   gap: 24px;
 }
 
+body[data-active-panel="detail"] .main-column > .report-bar {
+  order: 4;
+}
+
+body[data-active-panel="detail"] .main-column > .panel[data-panel="detail"] {
+  order: 3;
+}
+
 .report-bar {
   padding: 24px;
 }
