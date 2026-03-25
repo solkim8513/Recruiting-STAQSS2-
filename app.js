@@ -14,7 +14,7 @@ const DEFAULT_STAGE_ORDER = [
 ];
 
 const CANDIDATE_SCHEMA = [
-  { key: "job_department", label: "Job Department", aliases: ["job department", "department"], required: true },
+  { key: "job_department", label: "Job Department", aliases: ["job department", "department"], required: false },
   { key: "job_title", label: "Job Title", aliases: ["job title", "position"], required: true },
   {
     key: "candidate_first_name",
@@ -26,42 +26,42 @@ const CANDIDATE_SCHEMA = [
     key: "candidate_last_name",
     label: "Candidate Last Name",
     aliases: ["candidate last name", "last name"],
-    required: true,
+    required: false,
   },
   { key: "workflow_stage", label: "Workflow Stage", aliases: ["workflow stage", "stage"], required: true },
-  { key: "candidate_id", label: "Candidate ID", aliases: ["candidate id"], required: true },
-  { key: "job_id", label: "Job ID", aliases: ["job id"], required: true },
-  { key: "workflow_stage_id", label: "Workflow Stage ID", aliases: ["workflow stage id"], required: true },
-  { key: "date_created", label: "Date Created", aliases: ["date created"], required: true },
+  { key: "candidate_id", label: "Candidate ID", aliases: ["candidate id"], required: false },
+  { key: "job_id", label: "Job ID", aliases: ["job id"], required: false },
+  { key: "workflow_stage_id", label: "Workflow Stage ID", aliases: ["workflow stage id"], required: false },
+  { key: "date_created", label: "Date Created", aliases: ["date created"], required: false },
   {
     key: "last_active_workflow_stage",
     label: "Last Active Workflow Stage",
     aliases: ["last active workflow stage"],
-    required: true,
+    required: false,
   },
   {
     key: "date_moved_into_current_stage",
     label: "Date Moved into Current Stage",
     aliases: ["date moved into current stage"],
-    required: true,
+    required: false,
   },
-  { key: "source", label: "Source", aliases: ["source"], required: true },
-  { key: "referrer", label: "Referrer", aliases: ["referrer"], required: true },
-  { key: "recruiter", label: "Recruiter", aliases: ["recruiter"], required: true },
-  { key: "apply_date", label: "Apply Date", aliases: ["apply date"], required: true },
+  { key: "source", label: "Source", aliases: ["source"], required: false },
+  { key: "referrer", label: "Referrer", aliases: ["referrer"], required: false },
+  { key: "recruiter", label: "Recruiter", aliases: ["recruiter"], required: false },
+  { key: "apply_date", label: "Apply Date", aliases: ["apply date"], required: false },
 ];
 
 const JOB_SCHEMA = [
   { key: "job_title", label: "Job Title", aliases: ["job title", "position"], required: true },
   { key: "job_status", label: "Job Status", aliases: ["job status", "status"], required: true },
-  { key: "job_id", label: "Job ID", aliases: ["job id"], required: true },
-  { key: "job_department", label: "Job Department", aliases: ["job department", "department"], required: true },
-  { key: "date_opened", label: "Date Opened", aliases: ["date opened"], required: true },
-  { key: "date_closed", label: "Date Closed", aliases: ["date closed"], required: true },
-  { key: "recruiter", label: "Recruiter", aliases: ["recruiter"], required: true },
-  { key: "job_location", label: "Job Location", aliases: ["job location", "location"], required: true },
-  { key: "clearance", label: "Clearance", aliases: ["clearance"], required: true },
-  { key: "soc", label: "SOC", aliases: ["soc"], required: true },
+  { key: "job_id", label: "Job ID", aliases: ["job id"], required: false },
+  { key: "job_department", label: "Job Department", aliases: ["job department", "department"], required: false },
+  { key: "date_opened", label: "Date Opened", aliases: ["date opened"], required: false },
+  { key: "date_closed", label: "Date Closed", aliases: ["date closed"], required: false },
+  { key: "recruiter", label: "Recruiter", aliases: ["recruiter"], required: false },
+  { key: "job_location", label: "Job Location", aliases: ["job location", "location"], required: false },
+  { key: "clearance", label: "Clearance", aliases: ["clearance"], required: false },
+  { key: "soc", label: "SOC", aliases: ["soc"], required: false },
 ];
 
 const STAGE_INFERENCE_RULES = [
@@ -81,6 +81,7 @@ const app = {
     selectedImportId: "",
     filters: getDefaultFilters(),
     pendingImport: null,
+    fileSelection: getEmptyFileSelection(),
     toastTimer: null,
   },
 };
@@ -139,8 +140,8 @@ function cacheDom() {
     "clearFiltersButton",
     "reportWeekInput",
     "reportWeekHint",
-    "candidateFileInput",
-    "jobFileInput",
+    "importFilesInput",
+    "uploadStatusPanel",
     "validateImportButton",
     "saveImportButton",
     "loadDemoButton",
@@ -176,6 +177,7 @@ function bindEvents() {
   });
 
   dom.reportWeekInput.addEventListener("change", updateWeekHint);
+  dom.importFilesInput.addEventListener("change", handleImportFilesSelected);
   dom.validateImportButton.addEventListener("click", handleValidateImport);
   dom.saveImportButton.addEventListener("click", handleSaveImport);
   dom.loadDemoButton.addEventListener("click", handleLoadDemo);
@@ -253,6 +255,16 @@ function getDefaultFilters() {
   };
 }
 
+function getEmptyFileSelection() {
+  return {
+    all: [],
+    candidate: null,
+    job: null,
+    unknown: [],
+    duplicates: [],
+  };
+}
+
 async function loadPersistedState() {
   const settingsRecord = await idbGet(SETTINGS_STORE, SETTINGS_KEY);
   if (settingsRecord?.value) {
@@ -275,6 +287,7 @@ function renderAll() {
   renderHeroMetrics();
   renderSnapshotSelector();
   renderReportBar();
+  renderImportSelection();
   renderImportValidation();
   renderImportHistory();
   renderSummaryDashboard();
@@ -432,11 +445,74 @@ function renderJobChecklist() {
   dom.jobFilterCount.textContent = `${app.ui.filters.jobIds.length} job${app.ui.filters.jobIds.length === 1 ? "" : "s"} selected`;
 }
 
+function renderImportSelection() {
+  const selection = app.ui.fileSelection;
+  const slots = [
+    {
+      title: "Candidate export",
+      item: selection.candidate,
+      emptyText: "No candidate file selected yet.",
+    },
+    {
+      title: "Job export",
+      item: selection.job,
+      emptyText: "No job file selected yet.",
+    },
+  ];
+
+  const extraNotes = [];
+  if (selection.duplicates.length) {
+    extraNotes.push(`${selection.duplicates.length} extra file(s) matched a duplicate type and were ignored.`);
+  }
+  if (selection.unknown.length) {
+    extraNotes.push(`${selection.unknown.length} file(s) could not be identified as candidate or job exports.`);
+  }
+
+  dom.uploadStatusPanel.innerHTML = [
+    ...slots.map(({ title, item, emptyText }) => {
+      if (!item) {
+        return `
+          <article class="upload-slot">
+            <p class="sidebar-label">${escapeHtml(title)}</p>
+            <p class="sidebar-hint">${escapeHtml(emptyText)}</p>
+          </article>
+        `;
+      }
+
+      const slotClass = item.detection.confidence === "high" ? "upload-slot is-ready" : "upload-slot is-warning";
+      const meta = [
+        `${item.sheet.rows.length} row${item.sheet.rows.length === 1 ? "" : "s"}`,
+        `Detected as ${item.detection.kind} file`,
+        item.detection.confidence === "high" ? "Confident match" : "Check before validating",
+      ];
+
+      return `
+        <article class="${slotClass}">
+          <p class="sidebar-label">${escapeHtml(title)}</p>
+          <p class="upload-title">${escapeHtml(item.file.name)}</p>
+          <p class="upload-file">${escapeHtml(item.summary)}</p>
+          <div class="upload-meta">
+            ${meta.map((entry) => `<span class="upload-pill">${escapeHtml(entry)}</span>`).join("")}
+          </div>
+        </article>
+      `;
+    }),
+    extraNotes.length
+      ? `<article class="upload-slot is-warning"><p class="sidebar-label">Upload notes</p><p class="upload-file">${escapeHtml(
+          extraNotes.join(" ")
+        )}</p></article>`
+      : "",
+  ].join("");
+}
+
 function renderImportValidation() {
   const pending = app.ui.pendingImport;
   if (!pending) {
     dom.validationStatus.textContent = "Waiting for files";
-    dom.validationResults.innerHTML = "Upload one candidate export and one job export, then validate before saving.";
+    const hasSelectedFiles = app.ui.fileSelection.candidate || app.ui.fileSelection.job;
+    dom.validationResults.innerHTML = hasSelectedFiles
+      ? "Detected uploads are shown above. Click Validate files to review the snapshot preview and any template issues."
+      : "Upload one candidate export and one job export, then validate before saving.";
     dom.saveImportButton.disabled = true;
     return;
   }
@@ -447,8 +523,19 @@ function renderImportValidation() {
   const missingJobs = pending.jobReview.missingRequired;
   const stageMappings = Object.entries(pending.mappingSnapshot);
   const unmatched = pending.unmatchedJobIds;
+  const hasBlockingIssues = Boolean(missingCandidate.length || missingJobs.length);
+  const bannerClass = hasBlockingIssues ? "validation-banner is-error" : pending.warnings.length ? "validation-banner is-warning" : "validation-banner is-success";
+  const bannerText = hasBlockingIssues
+    ? "Validation found blocking issues. The missing required fields below must be fixed before a snapshot can be saved."
+    : pending.warnings.length
+      ? "Validation passed in template-compatible mode. Optional JazzHR fields are missing, so the app will backfill defaults where needed."
+      : "Validation passed. The selected files are ready to save as a weekly snapshot.";
 
   dom.validationResults.innerHTML = `
+    <div class="${bannerClass}">
+      <strong>${hasBlockingIssues ? "Validation issue" : "Validation complete"}</strong>
+      <span>${escapeHtml(bannerText)}</span>
+    </div>
     <div class="validation-grid">
       <div class="validation-card">
         <span>Candidate rows</span>
@@ -468,19 +555,23 @@ function renderImportValidation() {
       </div>
     </div>
     <div class="validation-lists">
-      <div class="validation-list">
+      <div class="validation-list ${missingCandidate.length ? "is-error" : "is-success"}">
         <h3>Candidate file checks</h3>
         ${renderListOrSuccess(missingCandidate, "All required candidate columns found.")}
       </div>
-      <div class="validation-list">
+      <div class="validation-list ${missingJobs.length ? "is-error" : "is-success"}">
         <h3>Job file checks</h3>
         ${renderListOrSuccess(missingJobs, "All required job columns found.")}
       </div>
-      <div class="validation-list">
+      <div class="validation-list ${unmatched.length ? "is-warning" : "is-success"}">
         <h3>Unmatched Job IDs</h3>
         ${renderListOrSuccess(unmatched, "Every candidate row matched a Job ID from the job export.")}
       </div>
-      <div class="validation-list">
+      <div class="validation-list ${pending.warnings.length ? "is-warning" : "is-success"}">
+        <h3>Template compatibility notes</h3>
+        ${renderListOrSuccess(pending.warnings, "No optional-field warnings detected.")}
+      </div>
+      <div class="validation-list ${stageMappings.length ? "is-success" : ""}">
         <h3>Stage mappings in this save</h3>
         ${
           stageMappings.length
@@ -752,9 +843,124 @@ function setDefaultWeekInput() {
   dom.reportWeekInput.value = getWeekStart(todayIso());
 }
 
+async function handleImportFilesSelected(event) {
+  const selectedFiles = [...(event.target.files || [])];
+  if (!selectedFiles.length) {
+    return;
+  }
+
+  dom.validationStatus.textContent = "Reading uploads...";
+  app.ui.pendingImport = null;
+
+  try {
+    const existingFiles = app.ui.fileSelection.all.map((entry) => entry.file);
+    const mergedFiles = dedupeFiles([...selectedFiles, ...existingFiles]);
+    app.ui.fileSelection = await analyzeImportFiles(mergedFiles);
+    renderAll();
+    showToast("Files uploaded. Review the detected candidate and job templates before validating.");
+  } catch (error) {
+    console.error(error);
+    app.ui.fileSelection = getEmptyFileSelection();
+    renderAll();
+    showToast("One or more uploaded files could not be read. Please re-upload valid CSV or XLSX files.");
+  } finally {
+    dom.importFilesInput.value = "";
+  }
+}
+
+async function analyzeImportFiles(files) {
+  const analyses = await Promise.all(
+    files.map(async (file) => {
+      const sheet = await parseWorkbook(file);
+      const detection = detectImportKind(sheet.headers);
+      const summary = buildFileSummary(sheet.headers);
+      return {
+        file,
+        sheet,
+        detection,
+        summary,
+      };
+    })
+  );
+
+  const candidateMatches = analyses
+    .filter((entry) => entry.detection.kind === "candidate")
+    .sort((left, right) => (right.detection.score - left.detection.score) || (right.file.lastModified - left.file.lastModified));
+  const jobMatches = analyses
+    .filter((entry) => entry.detection.kind === "job")
+    .sort((left, right) => (right.detection.score - left.detection.score) || (right.file.lastModified - left.file.lastModified));
+
+  const candidate = candidateMatches[0] || null;
+  const job = jobMatches.find((entry) => entry !== candidate) || jobMatches[0] || null;
+
+  const duplicates = analyses.filter((entry) => {
+    return (
+      (entry.detection.kind === "candidate" && candidate && entry !== candidate) ||
+      (entry.detection.kind === "job" && job && entry !== job)
+    );
+  });
+
+  const unknown = analyses.filter((entry) => entry.detection.kind === "unknown");
+
+  return {
+    all: analyses,
+    candidate,
+    job,
+    unknown,
+    duplicates,
+  };
+}
+
+function detectImportKind(headers) {
+  const candidateScore = scoreHeadersForSchema(headers, CANDIDATE_SCHEMA);
+  const jobScore = scoreHeadersForSchema(headers, JOB_SCHEMA);
+
+  if (candidateScore.score >= 3 && candidateScore.score > jobScore.score) {
+    return { kind: "candidate", score: candidateScore.score, confidence: candidateScore.score >= 4 ? "high" : "medium" };
+  }
+
+  if (jobScore.score >= 2 && jobScore.score >= candidateScore.score) {
+    return { kind: "job", score: jobScore.score, confidence: jobScore.score >= 3 ? "high" : "medium" };
+  }
+
+  return { kind: "unknown", score: Math.max(candidateScore.score, jobScore.score), confidence: "low" };
+}
+
+function scoreHeadersForSchema(headers, schema) {
+  const normalizedHeaders = headers.map((header) => slugify(header));
+  return schema.reduce(
+    (result, field) => {
+      const matched = field.aliases.some((alias) => normalizedHeaders.includes(slugify(alias)));
+      if (matched) {
+        result.score += field.required ? 2 : 1;
+      }
+      return result;
+    },
+    { score: 0 }
+  );
+}
+
+function buildFileSummary(headers) {
+  const populatedHeaders = headers.filter((header) => asText(header));
+  const visibleHeaders = populatedHeaders.slice(0, 4);
+  return visibleHeaders.length
+    ? `Headers: ${visibleHeaders.join(", ")}${populatedHeaders.length > 4 ? "..." : ""}`
+    : "No header row detected.";
+}
+
+function dedupeFiles(files) {
+  const seen = new Map();
+  files.forEach((file) => {
+    const key = `${file.name}::${file.size}::${file.lastModified}`;
+    seen.set(key, file);
+  });
+  return [...seen.values()];
+}
+
 async function handleValidateImport() {
-  if (!dom.candidateFileInput.files[0] || !dom.jobFileInput.files[0]) {
-    showToast("Choose both a candidate export and a job export before validation.");
+  const { candidate, job } = app.ui.fileSelection;
+  if (!candidate || !job) {
+    showToast("Upload both a candidate export and a job export before validation.");
     return;
   }
 
@@ -769,20 +975,15 @@ async function handleValidateImport() {
   try {
     const weekStart = getWeekStart(dom.reportWeekInput.value || todayIso());
     const weekEnd = addDays(weekStart, 6);
-    const [candidateSheet, jobSheet] = await Promise.all([
-      parseWorkbook(dom.candidateFileInput.files[0]),
-      parseWorkbook(dom.jobFileInput.files[0]),
-    ]);
-
-    const candidateReview = normalizeSheet(candidateSheet, CANDIDATE_SCHEMA);
-    const jobReview = normalizeSheet(jobSheet, JOB_SCHEMA);
+    const candidateReview = normalizeSheet(candidate.sheet, CANDIDATE_SCHEMA);
+    const jobReview = normalizeSheet(job.sheet, JOB_SCHEMA);
     const pendingImport = buildImportPreview({
       candidateReview,
       jobReview,
       weekStart,
       weekEnd,
-      candidateFileName: dom.candidateFileInput.files[0].name,
-      jobFileName: dom.jobFileInput.files[0].name,
+      candidateFileName: candidate.file.name,
+      jobFileName: job.file.name,
     });
 
     app.ui.pendingImport = pendingImport;
@@ -798,12 +999,13 @@ async function handleValidateImport() {
       valid: false,
       candidateRows: [],
       jobRows: [],
-      candidateReview: { missingRequired: ["Unable to parse the candidate file."], rows: [] },
-      jobReview: { missingRequired: ["Unable to parse the job file."], rows: [] },
+      candidateReview: { missingRequired: ["Unable to parse the candidate file."], missingOptional: [], rows: [] },
+      jobReview: { missingRequired: ["Unable to parse the job file."], missingOptional: [], rows: [] },
       unmatchedJobIds: [],
       positions: [],
       mappingSnapshot: {},
       version: 1,
+      warnings: [],
     };
     renderImportValidation();
     showToast("The files could not be parsed. Confirm they are valid CSV or XLSX exports.");
@@ -823,8 +1025,7 @@ async function handleSaveImport() {
     app.ui.pendingImport = null;
     app.ui.selectedImportId = pendingImport.record.id;
     app.ui.activePanel = "summary";
-    dom.candidateFileInput.value = "";
-    dom.jobFileInput.value = "";
+    app.ui.fileSelection = getEmptyFileSelection();
     await persistSettings();
     renderAll();
     showToast(`Saved ${pendingImport.record.weekLabel} v${pendingImport.record.version}.`);
@@ -856,6 +1057,10 @@ function buildImportPreview({ candidateReview, jobReview, weekStart, weekEnd, ca
   const rawStages = getUniqueStrings(candidateRows.map((row) => row.workflow_stage || row.last_active_workflow_stage));
   const mappingSnapshot = buildMappingSnapshot(rawStages);
   const version = nextVersionForWeek(weekStart);
+  const warnings = [
+    ...candidateReview.missingOptional.map((label) => `Candidate export is missing optional field: ${label}`),
+    ...jobReview.missingOptional.map((label) => `Job export is missing optional field: ${label}`),
+  ];
   const record = valid
     ? createSnapshotRecord({
         id: createSnapshotId(weekStart, version),
@@ -885,6 +1090,7 @@ function buildImportPreview({ candidateReview, jobReview, weekStart, weekEnd, ca
     mappingSnapshot,
     version,
     record,
+    warnings,
   };
 }
 
@@ -902,8 +1108,8 @@ function createSnapshotRecord({
 }) {
   const positionsMap = new Map();
 
-  jobRows.forEach((row) => {
-    const jobId = asText(row.job_id);
+  jobRows.forEach((row, index) => {
+    const jobId = buildJobIdentifier(row.job_id, row.job_title, index);
     if (!jobId) {
       return;
     }
@@ -923,7 +1129,7 @@ function createSnapshotRecord({
   });
 
   const candidateRecords = candidateRows.map((row, index) => {
-    const jobId = asText(row.job_id);
+    const jobId = buildJobIdentifier(row.job_id, row.job_title, index);
     const rawStage = asText(row.workflow_stage || row.last_active_workflow_stage);
     const matchingPosition = positionsMap.get(jobId);
     const candidateName = [asText(row.candidate_first_name), asText(row.candidate_last_name)].filter(Boolean).join(" ");
@@ -1197,8 +1403,8 @@ function updateFiltersFromControls() {
 function handleJobChecklistChange(event) {
   const input = event.target;
   if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") {
-    return;
-  }
+      return;
+    }
 
   const nextSelected = new Set(app.ui.filters.jobIds);
   if (input.checked) {
@@ -1615,6 +1821,7 @@ function normalizeSheet(sheet, schema) {
   });
 
   const missingRequired = resolvedSchema.filter((field) => field.required && field.index === -1).map((field) => field.label);
+  const missingOptional = resolvedSchema.filter((field) => !field.required && field.index === -1).map((field) => field.label);
   const rows = sheet.rows
     .filter((row) => row.some((cell) => asText(cell)))
     .map((row) => {
@@ -1627,6 +1834,7 @@ function normalizeSheet(sheet, schema) {
 
   return {
     missingRequired,
+    missingOptional,
     rows,
   };
 }
@@ -1649,6 +1857,20 @@ function chooseEventDate(record, fallbackWeekStart) {
     record.dateCreated ||
     fallbackWeekStart
   );
+}
+
+function buildJobIdentifier(jobId, jobTitle, fallbackIndex = 0) {
+  const explicitId = asText(jobId);
+  if (explicitId) {
+    return explicitId;
+  }
+
+  const titleSlug = slugify(jobTitle).replace(/\s+/g, "-").toUpperCase();
+  if (titleSlug) {
+    return `TITLE-${titleSlug}`;
+  }
+
+  return `JOB-${fallbackIndex + 1}`;
 }
 
 function sortImportsForUi(imports) {

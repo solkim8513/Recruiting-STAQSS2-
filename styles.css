@@ -289,6 +289,10 @@ textarea {
   grid-template-columns: 1.1fr 0.9fr;
 }
 
+.field-wide {
+  grid-column: span 2;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -327,6 +331,88 @@ textarea:focus {
 
 .file-input {
   padding: 10px 12px;
+}
+
+.upload-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.upload-slot {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(16, 35, 53, 0.12);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.upload-slot.is-ready {
+  border-color: rgba(15, 138, 124, 0.24);
+  background: linear-gradient(135deg, rgba(15, 138, 124, 0.1), rgba(255, 255, 255, 0.92));
+}
+
+.upload-slot.is-warning {
+  border-color: rgba(214, 116, 69, 0.28);
+  background: linear-gradient(135deg, rgba(214, 116, 69, 0.12), rgba(255, 255, 255, 0.92));
+}
+
+.upload-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.upload-file {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.upload-meta {
+  margin: 10px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.upload-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(16, 35, 53, 0.08);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.validation-banner {
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid transparent;
+  text-align: left;
+}
+
+.validation-banner strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.validation-banner.is-success {
+  color: var(--teal-deep);
+  background: rgba(15, 138, 124, 0.1);
+  border-color: rgba(15, 138, 124, 0.18);
+}
+
+.validation-banner.is-error {
+  color: #a2321a;
+  background: rgba(214, 116, 69, 0.13);
+  border-color: rgba(214, 116, 69, 0.28);
+}
+
+.validation-banner.is-warning {
+  color: #7b4f08;
+  background: rgba(239, 226, 202, 0.72);
+  border-color: rgba(214, 116, 69, 0.18);
 }
 
 .job-filter-card {
@@ -493,11 +579,32 @@ textarea:focus {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(16, 35, 53, 0.1);
+  text-align: left;
+}
+
+.validation-list.is-error {
+  border-color: rgba(214, 116, 69, 0.28);
+  background: rgba(214, 116, 69, 0.08);
+}
+
+.validation-list.is-warning {
+  border-color: rgba(214, 116, 69, 0.16);
+  background: rgba(239, 226, 202, 0.46);
+}
+
+.validation-list.is-success {
+  border-color: rgba(15, 138, 124, 0.18);
+  background: rgba(15, 138, 124, 0.06);
 }
 
 .validation-list h3 {
   margin: 0 0 10px;
   font-size: 1rem;
+}
+
+.validation-list p {
+  margin: 0;
+  line-height: 1.55;
 }
 
 .validation-list ul {
@@ -740,8 +847,13 @@ thead th {
 
   .filter-grid,
   .field-grid,
-  .admin-grid {
+  .admin-grid,
+  .upload-status-grid {
     grid-template-columns: 1fr;
+  }
+
+  .field-wide {
+    grid-column: auto;
   }
 
   .job-filter-header,

@@ -165,15 +165,25 @@
                     <small id="reportWeekHint" class="helper-text"></small>
                   </label>
 
-                  <label class="field">
-                    <span>Candidate export</span>
-                    <input id="candidateFileInput" class="input-text file-input" type="file" accept=".csv,.xlsx,.xls">
+                  <label class="field field-wide">
+                    <span>Weekly export files</span>
+                    <input id="importFilesInput" class="input-text file-input" type="file" accept=".csv,.xlsx,.xls" multiple>
+                    <small class="helper-text">
+                      Select both files from one picker. The app will auto-detect which one is the candidate export
+                      and which one is the job export, then show you what it recognized.
+                    </small>
                   </label>
+                </div>
 
-                  <label class="field">
-                    <span>Job export</span>
-                    <input id="jobFileInput" class="input-text file-input" type="file" accept=".csv,.xlsx,.xls">
-                  </label>
+                <div id="uploadStatusPanel" class="upload-status-grid">
+                  <article class="upload-slot">
+                    <p class="sidebar-label">Candidate export</p>
+                    <p class="sidebar-hint">No file selected yet.</p>
+                  </article>
+                  <article class="upload-slot">
+                    <p class="sidebar-label">Job export</p>
+                    <p class="sidebar-hint">No file selected yet.</p>
+                  </article>
                 </div>
 
                 <div class="button-row">
