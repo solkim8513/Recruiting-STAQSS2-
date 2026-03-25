@@ -145,6 +145,7 @@ function cacheDom() {
     "exportWorkbookButton",
     "printReportButton",
     "resetRecordsButton",
+    "exportDetailButton",
     "detailBoardContainer",
     "mappingTableBody",
     "newRawStageInput",
@@ -206,6 +207,7 @@ function bindEvents() {
   dom.saveSavedFiltersButton.addEventListener("click", saveCurrentPreset);
   dom.loadSavedFiltersButton.addEventListener("click", loadSavedPreset);
   dom.exportWorkbookButton.addEventListener("click", exportWorkbook);
+  dom.exportDetailButton.addEventListener("click", exportDetailWorkbook);
   dom.printReportButton.addEventListener("click", handlePrint);
   dom.resetRecordsButton.addEventListener("click", handleResetRecords);
 
@@ -785,7 +787,7 @@ function renderDetailBoard() {
     .join("");
 
   dom.detailBoardContainer.innerHTML = `
-    <div class="table-scroll">
+    <div class="detail-board-wrap">
       <table class="detail-sheet">
         <thead>
           <tr>
@@ -1622,6 +1624,27 @@ function exportWorkbook() {
 
   XLSX.writeFile(workbook, `staqss-report-${context.selectedImport.weekStart}.xlsx`);
   showToast("Exported the workbook for the selected snapshot.");
+}
+
+function exportDetailWorkbook() {
+  const context = buildReportContext();
+  if (!context || !window.XLSX) {
+    showToast("There is no detail board available to export.");
+    return;
+  }
+
+  const workbook = XLSX.utils.book_new();
+  const detailData = buildDetailSheetData(context);
+  const notesData = buildMetadataSheetData(context);
+
+  const detailSheet = XLSX.utils.aoa_to_sheet(detailData);
+  const notesSheet = XLSX.utils.aoa_to_sheet(notesData);
+
+  XLSX.utils.book_append_sheet(workbook, detailSheet, "Detail");
+  XLSX.utils.book_append_sheet(workbook, notesSheet, "Report Notes");
+
+  XLSX.writeFile(workbook, `staqss-detail-board-${context.selectedImport.weekStart}.xlsx`);
+  showToast("Exported the detail board workbook.");
 }
 
 function handlePrint() {
